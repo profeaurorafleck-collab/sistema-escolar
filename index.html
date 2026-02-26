@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema Escolar Premium Aurora</title>
+  
+  <!-- Bibliotecas externas -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://accounts.google.com/gsi/client"></script>
+  <script src="https://apis.google.com/js/api.js"></script>
+  
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+
+    header {
+      background: rgba(31, 60, 136, 0.95);
+      color: white;
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .header-stats {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .stat-badge {
+      background: rgba(255,255,255,0.2);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 30px auto;
+      padding: 25px;
+    }
+
+    .card {
+      background: rgba(255,255,255,0.95);
+      padding: 25px;
+      border-radius: 20px;
+      margin-bottom: 25px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 14px;
+      margin: 8px 0 15px 0;
+      border-radius: 12px;
+      border: 2px solid #e0e0e0;
+      font-size: 14px;
+    }
+
+    button {
+      padding: 14px 20px;
+      margin: 5px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      background: #1f3c88;
+      color: white;
+      transition: all 0.3s;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(31,60,136,0.4);
+    }
+
+    .btn-success { background: #28a745; }
+    .btn-secondary { background: #764ba2; }
+    .btn-danger { background: #dc3545; }
+    .btn-google { background: #db4437; }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin: 20px 0;
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 15px;
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 32px;
+      font-weight: bold;
+      margin: 10px 0;
+    }
+
+    .chart-container {
+      height: 300px;
+      margin: 20px 0;
+    }
+
+    .search-section {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 10px;
+      margin: 20px 0;
+    }
+
+    .turma-badge {
+      background: #e9ecef;
+      padding: 8px 16px;
+      border-radius: 20px;
+      display: inline-block;
+      margin: 5px;
+      cursor: pointer;
+      transition: all 0.3s;
+      border: 1px solid #dee2e6;
+    }
+
+    .turma-badge:hover {
+      background: #1f3c88;
+      color: white;
+    }
+
+    .result-card {
+      background: #f8f9fa;
+      padding: 20px;
+      margin: 10px 0;
+      border-radius: 15px;
+      border-left: 5px solid #1f3c88;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+
+    #turmasList {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .search-section {
+        grid-template-columns: 1fr;
+      }
+      
+      header {
+        flex-direction: column;
+        text-align: center;
+      }
+      
+      .stat-badge {
+        width: 100%;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h2>📘 Sistema Escolar Premium Aurora</h2>
+    <div>Professora Aurora</div>
+  </div>
+  <div class="header-stats">
+    <div class="stat-badge" id="totalAlunos">Total: 0 alunos</div>
+    <div class="stat-badge" id="totalTurmas">Turmas: 0</div>
+  </div>
+</header>
+
+<div class="container">
+  <!-- SEÇÃO DE LOGIN -->
+  <div id="loginSection" class="card">
+    <h3>🔐 Conectar ao Google Sheets</h3>
+    <div style="text-align: center; padding: 20px;">
+      <p>Clique no botão abaixo para conectar com sua conta Google e acessar a planilha.</p>
+      <button onclick="iniciarConfiguracao()" class="btn-google">⚙️ Configurar Planilha</button>
+    </div>
+  </div>
+
+  <!-- SEÇÃO PRINCIPAL (inicialmente oculta) -->
+  <div id="mainSection" style="display: none;">
+    <div class="card">
+      <h3>📝 Cadastro de Estudante</h3>
+      
+      <input type="text" id="nome" placeholder="Nome do estudante">
+      
+      <select id="turma">
+        <option value="">Selecione a turma</option>
+        <option value="TDIC">💻 TDIC</option>
+        <option value="FE4A">📚 FE4A</option>
+        <option value="FE4B">📚 FE4B</option>
+        <option value="FE5A">📚 FE5A</option>
+        <option value="FE5B">📚 FE5B</option>
+        <option value="1ºA">🏫 1ºA</option>
+        <option value="1ºB">🏫 1ºB</option>
+        <option value="2ºA">🏫 2ºA</option>
+        <option value="2ºB">🏫 2ºB</option>
+        <option value="3ºA">🏫 3ºA</option>
+        <option value="3ºB">🏫 3ºB</option>
+        <option value="4ºA">🏫 4ºA</option>
+        <option value="4ºB">🏫 4ºB</option>
+        <option value="5ºA">🏫 5ºA</option>
+        <option value="5ºB">🏫 5ºB</option>
+      </select>
+      
+      <textarea id="obs" placeholder="Observações sobre o aluno" rows="3"></textarea>
+      
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <button onclick="salvarEstudante()" class="btn-success">📥 Salvar</button>
+        <button onclick="limparCampos()" class="btn-secondary">🔄 Limpar</button>
+      </div>
+      
+      <div id="turmasList"></div>
+    </div>
+
+    <div class="card">
+      <h3>📊 Estatísticas</h3>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div>Total de Alunos</div>
+          <div class="stat-number" id="statsTotal">0</div>
+        </div>
+        <div class="stat-card">
+          <div>Turmas Ativas</div>
+          <div class="stat-number" id="statsTurmas">0</div>
+        </div>
+        <div class="stat-card">
+          <div>Com Observações</div>
+          <div class="stat-number" id="statsObs">0</div>
+        </div>
+      </div>
+      <div class="chart-container">
+        <canvas id="turmasChart"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>🔍 Relatórios</h3>
+      
+      <div class="search-section">
+        <input type="text" id="buscaAluno" placeholder="Buscar aluno...">
+        <select id="filtroTurma">
+          <option value="">Todas as turmas</option>
+          <option value="TDIC">💻 TDIC</option>
+          <option value="FE4A">📚 FE4A</option>
+          <option value="FE4B">📚 FE4B</option>
+          <option value="FE5A">📚 FE5A</option>
+          <option value="FE5B">📚 FE5B</option>
+          <option value="1ºA">🏫 1ºA</option>
+          <option value="1ºB">🏫 1ºB</option>
+          <option value="2ºA">🏫 2ºA</option>
+          <option value="2ºB">🏫 2ºB</option>
+          <option value="3ºA">🏫 3ºA</option>
+          <option value="3ºB">🏫 3ºB</option>
+          <option value="4ºA">🏫 4ºA</option>
+          <option value="4ºB">🏫 4ºB</option>
+          <option value="5ºA">🏫 5ºA</option>
+          <option value="5ºB">🏫 5ºB</option>
+        </select>
+        <button onclick="buscar()" class="btn-secondary">🔎 Buscar</button>
+      </div>
+      
+      <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;">
+        <button onclick="exportarPDF()" class="btn-danger">📑 PDF</button>
+        <button onclick="exportarCSV()" class="btn-secondary">📊 CSV</button>
+        <button onclick="carregarDados()" class="btn-secondary">🔄 Atualizar</button>
+      </div>
+      
+      <div id="resultado"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// CONFIGURAÇÕES - SUAS CREDENCIAIS
+const CONFIG = {
+  SPREADSHEET_ID: '1UQBJt5tUOR3o4BjXpUThjkG3b0Q5PEub1mJZBaaGZfE',
+  SHEET_NAME: 'Dados de Registro',
+  CLIENT_ID: '327510861011-nqm0qib9d8p1q9v2vbf8mipgg56grnne.apps.googleusercontent.com',
+  API_KEY: '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'
+};
+
+// Lista de turmas
+const TURMAS = [
+  "TDIC", "FE4A", "FE4B", "FE5A", "FE5B",
+  "1ºA", "1ºB", "2ºA", "2ºB", "3ºA", "3ºB",
+  "4ºA", "4ºB", "5ºA", "5ºB"
+];
+
+// Estado
+let estudantes = [];
+let grafico = null;
+let accessToken = null;
+
+// FUNÇÃO DE LOGIN
+window.iniciarConfiguracao = () => {
+  console.log('🚀 Iniciando configuração...');
+  
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: CONFIG.CLIENT_ID,
+    scope: 'https://www.googleapis.com/auth/spreadsheets',
+    callback: (response) => {
+      console.log('📦 Resposta do token:', response);
+      if (response.error) {
+        alert('❌ Erro de autenticação: ' + response.error);
+        return;
+      }
+      accessToken = response.access_token;
+      gapi.client.setToken({ access_token: accessToken });
+      
+      // Testar acesso à planilha imediatamente
+      testarAcessoPlanilha();
+      
+      document.getElementById('loginSection').style.display = 'none';
+      document.getElementById('mainSection').style.display = 'block';
+    },
+  });
+  
+  client.requestAccessToken({ prompt: 'consent' });
+};
+
+// FUNÇÃO PARA TESTAR ACESSO À PLANILHA
+async function testarAcessoPlanilha() {
+  try {
+    console.log('🔍 Testando acesso à planilha...');
+    
+    const response = await gapi.client.sheets.spreadsheets.get({
+      spreadsheetId: CONFIG.SPREADSHEET_ID
+    });
+    
+    console.log('✅ Acesso à planilha OK!');
+    console.log('📋 Título da planilha:', response.result.properties.title);
+    
+    // Agora carregar os dados
+    carregarDados();
+    
+  } catch (error) {
+    console.error('❌ Erro ao acessar planilha:', error);
+    alert('Erro ao acessar planilha: ' + (error.result?.error?.message || error.message));
+  }
+}
+
+// CARREGAR DADOS DA PLANILHA
+async function carregarDados() {
+  if (!accessToken) {
+    alert('Faça login primeiro!');
+    return;
+  }
+  
+  try {
+    console.log('📥 Carregando dados da planilha...');
+    
+    const response = await gapi.client.sheets.spreadsheets.values.get({
+      spreadsheetId: CONFIG.SPREADSHEET_ID,
+      range: `${CONFIG.SHEET_NAME}!A:D`,
+    });
+    
+    const rows = response.result.values || [];
+    
+    // Se só tem cabeçalho ou está vazia
+    if (rows.length <= 1) {
+      estudantes = [];
+      atualizarUI();
+      return;
+    }
+    
+    // Converter para objetos (pulando o cabeçalho)
+    estudantes = [];
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (row[0] && row[0].trim() !== '') {
+        estudantes.push({
+          nome: row[0] || '',
+          turma: row[1] || '',
+          observacao: row[2] || '',
+          dataCadastro: row[3] || new Date().toISOString()
+        });
+      }
+    }
+    
+    console.log('👥 Estudantes carregados:', estudantes.length);
+    atualizarUI();
+    
+  } catch (error) {
+    console.error('❌ Erro ao carregar dados:', error);
+    alert('Erro ao carregar dados: ' + (error.result?.error?.message || error.message));
+  }
+}
+
+// SALVAR ESTUDANTE
+window.salvarEstudante = async () => {
+  if (!accessToken) {
+    alert('Faça login primeiro!');
+    return;
+  }
+  
+  const nome = document.getElementById('nome').value.trim();
+  const turma = document.getElementById('turma').value;
+  const obs = document.getElementById('obs').value.trim();
+  
+  if (!nome) {
+    alert('Digite o nome do estudante!');
+    return;
+  }
+  
+  if (!turma) {
+    alert('Selecione uma turma!');
+    return;
+  }
+  
+  try {
+    // Buscar quantas linhas existem
+    const response = await gapi.client.sheets.spreadsheets.values.get({
+      spreadsheetId: CONFIG.SPREADSHEET_ID,
+      range: `${CONFIG.SHEET_NAME}!A:A`,
+    });
+    
+    const rows = response.result.values || [];
+    const nextRow = rows.length + 1;
+    
+    // Salvar os dados
+    await gapi.client.sheets.spreadsheets.values.update({
+      spreadsheetId: CONFIG.SPREADSHEET_ID,
+      range: `${CONFIG.SHEET_NAME}!A${nextRow}:D${nextRow}`,
+      valueInputOption: 'USER_ENTERED',
+      resource: {
+        values: [[nome, turma, obs, new Date().toISOString()]]
+      }
+    });
+    
+    alert('✅ Estudante salvo com sucesso!');
+    document.getElementById('nome').value = '';
+    document.getElementById('obs').value = '';
+    carregarDados();
+    
+  } catch (error) {
+    alert('Erro ao salvar: ' + (error.result?.error?.message || error.message));
+  }
+};
+
+// LIMPAR CAMPOS
+window.limparCampos = () => {
+  document.getElementById('nome').value = '';
+  document.getElementById('turma').value = '';
+  document.getElementById('obs').value = '';
+};
+
+// ATUALIZAR INTERFACE
+function atualizarUI() {
+  // Atualizar contadores
+  document.getElementById('totalAlunos').textContent = `Total: ${estudantes.length} alunos`;
+  document.getElementById('statsTotal').textContent = estudantes.length;
+  
+  const turmasAtivas = new Set(estudantes.map(e => e.turma).filter(Boolean)).size;
+  document.getElementById('totalTurmas').textContent = `Turmas: ${turmasAtivas}`;
+  document.getElementById('statsTurmas').textContent = turmasAtivas;
+  
+  const comObs = estudantes.filter(e => e.observacao && e.observacao.trim() !== '').length;
+  document.getElementById('statsObs').textContent = comObs;
+  
+  // Atualizar badges de turmas
+  const contagem = {};
+  estudantes.forEach(e => {
+    if (e.turma) contagem[e.turma] = (contagem[e.turma] || 0) + 1;
+  });
+  
+  const turmasContainer = document.getElementById('turmasList');
+  turmasContainer.innerHTML = TURMAS.map(t => 
+    `<span class="turma-badge" onclick="filtrarTurma('${t}')">${t} (${contagem[t] || 0})</span>`
+  ).join('');
+  
+  // Atualizar gráfico
+  if (grafico) grafico.destroy();
+  
+  const ctx = document.getElementById('turmasChart').getContext('2d');
+  grafico = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: TURMAS,
+      datasets: [{
+        label: 'Alunos por Turma',
+        data: TURMAS.map(t => contagem[t] || 0),
+        backgroundColor: '#667eea',
+        borderColor: '#764ba2',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          stepSize: 1
+        }
+      }
+    }
+  });
+  
+  // Exibir todos os resultados
+  exibirResultados(estudantes);
+}
+
+// FILTRAR POR TURMA
+window.filtrarTurma = (turma) => {
+  document.getElementById('filtroTurma').value = turma;
+  buscar();
+};
+
+// BUSCAR ALUNOS
+window.buscar = () => {
+  const nomeBusca = document.getElementById('buscaAluno').value.toLowerCase();
+  const turmaBusca = document.getElementById('filtroTurma').value;
+  
+  const filtrados = estudantes.filter(e => {
+    const matchNome = !nomeBusca || (e.nome && e.nome.toLowerCase().includes(nomeBusca));
+    const matchTurma = !turmaBusca || e.turma === turmaBusca;
+    return matchNome && matchTurma;
+  });
+  
+  exibirResultados(filtrados);
+};
+
+// EXIBIR RESULTADOS
+function exibirResultados(dados) {
+  const resultadoDiv = document.getElementById('resultado');
+  
+  if (dados.length === 0) {
+    resultadoDiv.innerHTML = '<div class="result-card">📭 Nenhum aluno encontrado</div>';
+    return;
+  }
+  
+  const html = dados.map(d => `
+    <div class="result-card">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <b>${d.nome}</b>
+          ${d.observacao ? '<span style="background: #ffd700; padding: 2px 8px; border-radius: 12px; font-size: 11px; margin-left: 10px;">📝 Obs</span>' : ''}
+        </div>
+        <small>${new Date(d.dataCadastro).toLocaleDateString('pt-BR')}</small>
+      </div>
+      <div style="margin-top: 10px;">
+        <span style="background: #e9ecef; padding: 4px 12px; border-radius: 15px;">🏫 ${d.turma || 'Sem turma'}</span>
+      </div>
+      ${d.observacao ? `<div style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 8px;">📌 ${d.observacao}</div>` : ''}
+    </div>
+  `).join('');
+  
+  resultadoDiv.innerHTML = html + `<div style="margin-top: 15px; text-align: right;">📊 Total: ${dados.length} aluno(s)</div>`;
+}
+
+// EXPORTAR PDF
+window.exportarPDF = () => {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  
+  doc.setFontSize(20);
+  doc.text('📘 Relatório Escolar Aurora', 20, 20);
+  doc.setFontSize(12);
+  doc.text(`Total de Alunos: ${estudantes.length}`, 20, 35);
+  doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 20, 45);
+  
+  let y = 60;
+  estudantes.slice(0, 30).forEach((e, i) => {
+    if (y > 280) { doc.addPage(); y = 20; }
+    doc.text(`${i+1}. ${e.nome} - ${e.turma || 'Sem turma'}`, 20, y);
+    y += 7;
+  });
+  
+  doc.save(`relatorio_${new Date().toISOString().split('T')[0]}.pdf`);
+};
+
+// EXPORTAR CSV
+window.exportarCSV = () => {
+  const csv = ['Nome,Turma,Observação,Data'];
+  estudantes.forEach(e => {
+    csv.push(`"${e.nome}","${e.turma}","${e.observacao}","${e.dataCadastro}"`);
+  });
+  
+  const blob = new Blob(['\uFEFF' + csv.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `alunos_${new Date().toISOString().split('T')[0]}.csv`;
+  link.click();
+};
+
+// ATUALIZAR DADOS
+window.carregarDados = carregarDados;
+
+// INICIALIZAÇÃO
+gapi.load('client', () => {
+  console.log('✅ GAPI client carregado');
+});
+</script>
+
+</body>
+</html>
